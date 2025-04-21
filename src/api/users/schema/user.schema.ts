@@ -8,11 +8,14 @@ export class User {
 
   @Prop({ unique: true })
   email: string;
+  
+  @Prop({ unique: true })
+  phoneNumber: string;
 
-  @Prop()
+  @Prop({select: false})
   refreshToken?: string;
 
-  @Prop()
+  @Prop({select: false})
   password: string;
 }
 

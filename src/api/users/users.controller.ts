@@ -2,9 +2,11 @@ import { ApiOperation, ApiResponse, ApiBody } from '@nestjs/swagger';
 import { Body, Controller, Get, Post, UseGuards } from '@nestjs/common';
 import { CreateUserRequest } from './dto/create-user.request';
 import { UsersService } from './users.service';
-import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
-import { CurrentUser } from 'src/auth/current-user.decorator';
+import { JwtAuthGuard } from 'src/api/auth/guards/jwt-auth.guard';
+import { CurrentUser } from 'src/decorators/current-user.decorator';
 import { User } from './schema/user.schema';
+import { ApiPublic } from 'src/decorators/http.decorators';
+import { CreateUserWithPhoneRequest } from './dto/register.req.dto';
 
 @Controller('users')
 export class UsersController {
@@ -20,6 +22,15 @@ export class UsersController {
   async createUser(@Body() request: CreateUserRequest) {
     await this.usersService.create(request);
   }
+
+ @ApiPublic({
+     type: CreateUserWithPhoneRequest,
+     summary: 'Create a new user with phone number',
+   })
+   @Post('create')
+    async createUserWithPhoneNumber(@Body() user: CreateUserWithPhoneRequest): Promise<any> {
+      return await this.usersService.createUserWithPhoneNumber(user);
+    }
 
   @Get()
   @ApiOperation({ summary: 'Get all users' })
