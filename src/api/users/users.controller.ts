@@ -7,7 +7,7 @@ import { CurrentUser } from 'src/decorators/current-user.decorator';
 import { User } from './schema/user.schema';
 import { ApiPublic } from 'src/decorators/http.decorators';
 import { CreateUserWithPhoneRequest } from './dto/register.req.dto';
-
+//test
 @Controller('users')
 export class UsersController {
   constructor(private readonly usersService: UsersService) {}
