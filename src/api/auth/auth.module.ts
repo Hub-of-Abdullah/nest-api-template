@@ -7,6 +7,7 @@ import { JwtModule } from '@nestjs/jwt';
 import { LocalStrategy } from './strategies/local.strategy';
 import { JwtStrategy } from './strategies/jwt.strategy';
 import { JwtRefreshStrategy } from './strategies/jwt-refresh.strategy';
+import { JwtWithRefreshStrategy } from './strategies/jwt-with-refresh.strategy';
 import { MongooseModule } from '@nestjs/mongoose';
 import { User, UserSchema } from '../users/schema/user.schema';
 // import { GoogleStrategy } from './strategies/google.strategy';
@@ -24,6 +25,7 @@ import { User, UserSchema } from '../users/schema/user.schema';
     LocalStrategy,
     JwtStrategy,
     JwtRefreshStrategy,
+    JwtWithRefreshStrategy,
     // GoogleStrategy,
   ],
 })

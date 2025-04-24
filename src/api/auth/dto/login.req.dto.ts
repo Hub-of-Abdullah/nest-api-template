@@ -10,13 +10,13 @@ export class LoginReqWithEmailDto {
 
 export class LoginReqWithPhoneDto {
   @PhoneField()
-  phoneNumber!: string;
+  phone!: string;
 
   @PasswordField()
   password!: string;
 }
 
-export class LoginDto {
+export class LoginReqDto {
   @EmailField()
   email!: string;
 

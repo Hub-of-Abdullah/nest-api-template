@@ -15,9 +15,9 @@ export default () => ({
       nodeEnv: process.env.NODE_ENV || Environment.DEVELOPMENT, // Node environment
     },
     client: {
-      corsOrigins: process.env.CLIENT_URLS 
-        ? process.env.CLIENT_URLS.split(',') 
-        : [DefaultUrl.CLIENT_URL], 
+      corsOrigins: process.env.APP_CORS_ORIGIN 
+        ? process.env.APP_CORS_ORIGIN.split(',') 
+        : [DefaultUrl.APP_CORS_ORIGIN], 
     },
   });
 

@@ -10,7 +10,7 @@ export class User {
   email: string;
   
   @Prop({ unique: true })
-  phoneNumber: string;
+  phone: string;
 
   @Prop({select: false})
   refreshToken?: string;

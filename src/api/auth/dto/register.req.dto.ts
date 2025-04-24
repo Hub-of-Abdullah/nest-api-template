@@ -10,7 +10,7 @@ export class CreateUserWithEmailRequest {
 
 export class CreateUserWithPhoneRequest {
   @PhoneField()
-  phoneNumber!: string;
+  phone!: string;
 
   @PasswordField()
   password!: string;

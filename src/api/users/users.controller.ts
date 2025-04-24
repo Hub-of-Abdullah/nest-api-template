@@ -3,6 +3,7 @@ import { Body, Controller, Get, Post, UseGuards } from '@nestjs/common';
 import { CreateUserRequest } from './dto/create-user.request';
 import { UsersService } from './users.service';
 import { JwtAuthGuard } from 'src/api/auth/guards/jwt-auth.guard';
+import { JwtWithRefreshAuthGuard } from 'src/api/auth/guards/jwt-with-refresh-auth.guard';
 import { CurrentUser } from 'src/decorators/current-user.decorator';
 import { User } from './schema/user.schema';
 import { ApiPublic } from 'src/decorators/http.decorators';
@@ -42,14 +43,14 @@ export class UsersController {
     return this.usersService.getUsers();
   }
 
-
-
+  
   @Get('me')
   @ApiOperation({ summary: 'Get current user' })
   @ApiResponse({ status: 200, description: 'Return current user' })
   @ApiResponse({ status: 400, description: 'Bad request' })
   
-  @UseGuards(JwtAuthGuard)
+  //@UseGuards(JwtAuthGuard)
+  @UseGuards(JwtWithRefreshAuthGuard)
   async getMe(@CurrentUser() user: User) {
     return this.usersService.getUser({ _id: user._id });
   }

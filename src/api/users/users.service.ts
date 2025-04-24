@@ -38,7 +38,6 @@ async createUserWithPhoneNumber(data: CreateUserWithPhoneRequest) {
 
   async getUser(query: FilterQuery<User>, includePassword = false) {
     let dbQuery = this.userModel.findOne(query);
-  
     if (includePassword) {
       dbQuery = dbQuery.select('+password'); // Ensure password is included in the query
     }
@@ -48,7 +47,30 @@ async createUserWithPhoneNumber(data: CreateUserWithPhoneRequest) {
     }
     return user;
   }
+
+
+  async getUserRefreshToken(query: FilterQuery<User>) {
+    let dbQuery = this.userModel.findOne(query);
+      ///dbQuery = dbQuery.select('+refreshToken'); // Ensure password is included in the query
+    const user = await dbQuery.lean(); // Convert to plain object
+    console.log('user: refresh', user);
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+    return user;
+  }
+
   
+
+  async getUserRefreshToken1(query: FilterQuery<User>) {
+    const dbQuery = this.userModel.findOne(query).select('+refreshToken'); // Add select here
+    const user = await dbQuery.lean();
+    
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+    return user;
+  }
 
   async getUsers() {
     return this.userModel.find({});

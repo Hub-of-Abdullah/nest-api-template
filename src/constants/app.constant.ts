@@ -11,7 +11,7 @@ export enum Environment {
 }
 
 export enum DefaultUrl {
-  CLIENT_URL = 'http://localhost:3000',
+  APP_CORS_ORIGIN = 'http://localhost:3000',
 }
 
 
