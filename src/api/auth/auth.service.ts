@@ -339,6 +339,18 @@ export class AuthService {
       throw new UnauthorizedException('Refresh token is not valid.');
     }
   }
+
+
+  async validateUserById(userId: string): Promise<User | null> {
+    console.log('AuthService validateUserById called');
+    const user = await this.usersService.getUser({ _id: userId });
+    if (!user) {
+      throw new UnauthorizedException('User not found.');
+    }
+    return user;
+  } 
+
+
 }
 
 
