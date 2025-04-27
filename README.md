@@ -58,6 +58,29 @@ $ pnpm run test:e2e
 $ pnpm run test:cov
 ```
 
+
+## Automatic Token Renewal via JWT Strategy and Passport Guard
+
+This project implements automatic access token renewal using **Passport.js** and **JWT strategy**. It validates the refresh token when the access token expires and issues a new token automatically, without needing a dedicated `/refresh` endpoint.
+
+### Key Features:
+- **Passport Guard**: Uses a guard to validate the refresh token and automatically renew the access token.
+- **No /refresh Endpoint**: Eliminates the need for a separate refresh endpoint.
+- **Secure Token Rotation**: Refresh tokens are securely rotated after each use to prevent misuse.
+
+### How It Works:
+- When the access token expires, the system checks the refresh token.
+- If valid, a new access token is issued, and the refresh token is rotated.
+- This process ensures security while providing a seamless experience for the user.
+
+### Benefits:
+- **Streamlined Authentication**: No manual token refresh request is needed.
+- **Enhanced Security**: Proper token rotation prevents misuse.
+- **Seamless User Experience**: Transparent token renewal without additional API calls.
+
+
+
+
 ## Support
 
 Nest is an MIT-licensed open source project. It can grow thanks to the sponsors and support by the amazing backers. If you'd like to join them, please [read more here](https://docs.nestjs.com/support).
