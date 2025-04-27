@@ -1,5 +1,6 @@
 export const IS_PUBLIC = 'isPublic';
 export const IS_AUTH_OPTIONAL = 'isAuthOptional';
+export const PASSWORD__SECRET ="b7fcb34a-0f05-4d13-99af-8db42e789550";
 
 
 export enum Environment {
