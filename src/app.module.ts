@@ -4,7 +4,6 @@ import { MongooseModule } from '@nestjs/mongoose';
 import { UsersModule } from './api/users/users.module';
 import { AuthModule } from './api/auth/auth.module';
 import { PermissionModule } from './api/permission/permission.module';
-import { PermissionModule } from './api/permission/permission.module';
 
 @Module({
   imports: [
