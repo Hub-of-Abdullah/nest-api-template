@@ -15,7 +15,7 @@ import { CreateUserWithPhoneRequest, CreateUserWithEmailRequest } from './dto/re
 
 // @Controller('auth')
 
-@ApiTags('auth')
+@ApiTags('Athentication')
 @Controller({
   path: 'auth',
   version: '1',

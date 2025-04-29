@@ -53,7 +53,6 @@ async createUserWithPhoneNumber(data: CreateUserWithPhoneRequest) {
     let dbQuery = this.userModel.findOne(query);
       ///dbQuery = dbQuery.select('+refreshToken'); // Ensure password is included in the query
     const user = await dbQuery.lean(); // Convert to plain object
-    console.log('user: refresh', user);
     if (!user) {
       throw new NotFoundException('User not found');
     }

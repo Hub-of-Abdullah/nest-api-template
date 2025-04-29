@@ -41,9 +41,6 @@ export class AuthService {
 
   async loginWithPhoneNumber(userLogin: LoginReqWithPhoneDto, response: Response, redirect = false) : Promise<any> {
 
-    console.log('AuthService login called');
-    console.log('User object:', userLogin); // Log the user object for debugging
-
     const includePassword = true;
     const user = await this.usersService.getUser({ phone: userLogin.phone }, includePassword);
 
@@ -136,7 +133,6 @@ export class AuthService {
       throw new UnauthorizedException('Invalid phone number.');
     }
     const isPasswordValid = user && (await this.verifyPassword(dto.password, user.password));
-    console.log('isPasswordValid', isPasswordValid);
 
     if (!isPasswordValid) {
       throw new UnauthorizedException();
@@ -211,14 +207,11 @@ export class AuthService {
   async loginWithEmail(dto: LoginReqWithEmailDto, response: Response, redirect = false): Promise<any> {
     const includePassword = true;
     const user = await this.usersService.getUser({ email: dto.email },includePassword);
-    console.log('user', user);
-
     if (!user) {
       throw new UnauthorizedException('Invalid Email.');
     }
     const isPasswordValid = user && (await this.verifyPassword(dto.password, user.password));
-    console.log('isPasswordValid email', isPasswordValid);
-
+  
     if (!isPasswordValid) {
       throw new UnauthorizedException();
     }
@@ -287,10 +280,6 @@ export class AuthService {
 
 
   async verifyPassword(password: string, hashedPassword: string): Promise<boolean> {
-    console.log('AuthService verifyPassword called');
-    console.log('Password:', password);
-    console.log('Hashed Password:', hashedPassword);
-
     try {
       return await compare(password, hashedPassword);
     } catch (error) {
@@ -299,7 +288,6 @@ export class AuthService {
   };
 
   async verifyUser(email: string, password: string) {
-    console.log('AuthService verifyUser called');
     const includePassword = true;
     try {
       const user = await this.usersService.getUser({ email }, includePassword);
@@ -315,12 +303,10 @@ export class AuthService {
   }
 
   async verifyUserByPhone(phone: string, password: string) {
-    console.log('AuthService verifyUser called');
     const includePassword = true;
     try {
       const user = await this.usersService.getUser({ phone }, includePassword);
-      console.log('user', user);
-      
+
       const authenticated = await compare(password, user.password);
       if (!authenticated) {
         throw new UnauthorizedException();
@@ -334,7 +320,6 @@ export class AuthService {
 
 
   async verifyUserByEmail(email: string, password: string) {
-    console.log('AuthService verifyUserByEmailOrPhone called');
     const includePassword = true;
     try {
       const user = await this.usersService.getUser({ email }, includePassword);
@@ -367,13 +352,9 @@ export class AuthService {
     try {
       //const user = await (await this.usersService.getUserRefreshToken({ _id: userId })).select('+refreshToken');
       const user = await this.usersService.getUserRefreshToken1({ _id: userId });
-      console.log('user verify: ', user);
-      console.log('user.refreshToken', user.refreshToken);
-      console.log('refreshToken', rawRefreshToken); 
-
+  
       const authenticated = await compare(rawRefreshToken, user.refreshToken);
-      console.log('authenticated', authenticated);
-      
+    
       if (!authenticated) {
         throw new UnauthorizedException();
       }

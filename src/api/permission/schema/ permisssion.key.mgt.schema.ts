@@ -2,33 +2,21 @@ import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { SchemaTypes, Types } from 'mongoose';
 
 @Schema()
-export class User {
+export class RolePermission {
   @Prop({ type: SchemaTypes.ObjectId, auto: true })
   _id: Types.ObjectId;
-
-  @Prop({ unique: true })
-  email: string;
   
-  @Prop({ unique: true })
-  phone: string;
+  @Prop({ required: true })
+  resource: string;
 
-  @Prop({ type: String })
-  role: string;
-
-  @Prop({select: false})
-  refreshToken?: string;
-
-  @Prop({select: false})
-  password: string;
+  @Prop({required: true})
+  action : string;
 
   @Prop({ type: Boolean, default: false })
   isPublish: boolean;
 
   @Prop({ type: Boolean, default: false })
   isDelete: boolean;
-
-  @Prop({ type: Boolean, default: false })
-  isResign: boolean;
 
   @Prop({ type: Date })
   publishAt?: Date;
@@ -47,6 +35,13 @@ export class User {
 
   @Prop({ type: SchemaTypes.ObjectId, ref: 'User' })
   deletedBy?: Types.ObjectId;
-}
 
-export const UserSchema = SchemaFactory.createForClass(User);
+}
+export const RolePermissionSchema = SchemaFactory.createForClass(RolePermission);
+
+
+
+
+
+
+   

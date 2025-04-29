@@ -12,8 +12,6 @@ import { createParamDecorator, ExecutionContext } from '@nestjs/common';
 
 const getCurrentUserByContext = (context: ExecutionContext) => {
   const request = context.switchToHttp().getRequest();
-  // console.log('Request Object:', request); // Logs the entire request object for debugging
-  console.log('User Object:', request.user); // Logs the user object attached to the request (if any)
   return request.user;
 };
 
