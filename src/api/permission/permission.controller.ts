@@ -10,7 +10,7 @@ import { PermissionGuard } from 'src/common/guards/permission.guard';
 import { Permission } from 'src/common/decorators/permission.decorator';
 
 
-@ApiTags('Athorization')
+@ApiTags('Authorization')
 @Controller({
   path: 'auth',
   version: '1',

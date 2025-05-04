@@ -80,6 +80,54 @@ This project implements automatic access token renewal using **Passport.js** and
 
 
 
+## 🔐 Authorization Module (Role & Permission System)
+
+This module implements a robust role-based access control (RBAC) system using custom decorators and guards in NestJS. It enables fine-grained access control for users based on their assigned roles and permissions.
+
+### ✨ Features
+
+- Role-based permission management
+- Custom `@Permission()` decorator
+- Global `PermissionGuard` to restrict access to routes
+- Integration with JWT authentication
+- CRUD endpoints for permissions
+
+---
+
+### 📁 Controller Endpoints
+
+| Method | Route                        | Description                    | Required Permission         |
+|--------|------------------------------|--------------------------------|---------------------------- |
+| POST   | /auth/permission/create      | Create a new permission        | `permission.add`            |
+| GET    | /auth/permission/get         | Get all permissions            | `permission.view-all`       |
+| GET    | /auth/permission/get/:id     | Get permission by user ID      | `permission.view`           |
+| PATCH  | /auth/permission/update/:id  | Update a permission            | `permission.update`         |
+| DELETE | /auth/permission/delete/:id  | Delete a permission            | `permission.delete`         |
+
+---
+
+### 🛡️ How Authorization Works
+
+1. **JwtWithRefreshAuthGuard** authenticates the user using access or refresh token.
+2. **PermissionGuard** checks if the user has the required permission.
+3. **@Permission('your.permission.code')** decorator is used to mark which permission is needed for a specific route.
+
+---
+
+### 🧱 Usage
+
+To secure a route, apply the following decorators:
+
+```ts
+@UseGuards(JwtWithRefreshAuthGuard, PermissionGuard)
+@Permission('permission.view')
+@Get('your-route')
+async yourHandler() {
+  // Your logic
+}
+
+
+
 
 ## Support
 
