@@ -3,7 +3,7 @@ import { CanActivate, ExecutionContext,Injectable,ForbiddenException,} from '@ne
 import { Reflector } from '@nestjs/core';
 import { PermissionService } from 'src/api/permission/permission.service';
   
-  
+   
   @Injectable()
   export class PermissionGuard implements CanActivate {
     constructor(

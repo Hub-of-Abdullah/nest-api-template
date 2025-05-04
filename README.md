@@ -114,6 +114,64 @@ This module implements a robust role-based access control (RBAC) system using cu
 
 ---
 
+## 🔐 Role-Based Authorization (PermissionGuard + @Permission)
+
+This module enables fine-grained access control in your NestJS API using a custom `@Permission` decorator and `PermissionGuard`. It follows a Role-Based Access Control (RBAC) pattern where each role is associated with a list of permission keys.
+
+---
+
+### ⚙️ How It Works
+
+1. You decorate protected endpoints using `@Permission('permission.key')`.
+2. The `PermissionGuard`:
+   - Reads the permission key from the decorator.
+   - Extracts the user ID from the JWT payload.
+   - Fetches the user's permissions (through their role) from the database.
+   - Compares the required key with the user's assigned permissions.
+3. If the permission matches, access is granted. Otherwise, a `403 Forbidden` response is returned.
+
+---
+
+### 📊 Authorization Flow
+
+```text
+┌────────────┐
+│  API Call  │
+└────┬───────┘
+     │
+     ▼
+┌───────────────┐
+│ @Permission() │ ◄──── Defines required permission
+└────┬──────────┘
+     │
+     ▼
+┌────────────────────┐
+│  PermissionGuard   │
+└────┬────────┬──────┘
+     │        ▼
+     │   Required Permission
+     ▼
+User ID (from JWT)
+     │
+     ▼
+┌─────────────────────────────┐
+│ Fetch role-permission keys  │
+└─────────────────────────────┘
+     │
+     ▼
+┌────────────────────────┐
+│ Compare permissions     │
+└─────────┬──────────────┘
+          │ Match?
+     ┌────▼────┐      ┌─────────────┐
+     │  Yes    │      │     No      │
+     │ Access  │      │  Forbidden  │
+     └─────────┘      └─────────────┘
+
+
+
+
+
 ### 🧱 Usage
 
 To secure a route, apply the following decorators:
@@ -125,6 +183,8 @@ To secure a route, apply the following decorators:
 async yourHandler() {
   // Your logic
 }
+
+
 
 
 
