@@ -201,9 +201,11 @@ User ID (from JWT)
 
 
 ```
+
 ### 🧱 Usage
 
 To secure a route, apply the following decorators:
+
 
 ```ts
 @UseGuards(JwtWithRefreshAuthGuard, PermissionGuard)
@@ -212,25 +214,19 @@ To secure a route, apply the following decorators:
 async yourHandler() {
   // Your logic
 }
+```
 
-# API Rate Limiting Guards
+## ⚙️  API Rate Limiting Guards
 
 This module provides two NestJS guards to enforce request rate limits:
 
 * **RateLimitGuard**: Apply per-route rate limiting for both public (unauthenticated) and protected (authenticated) APIs, supporting multiple time windows.
 * **LoginAttemptGuard**: Specifically throttle login attempts to prevent brute-force attacks.
 
-## Features
-
-* **Per-route configuration**: Customize limits at controller or method level
-* **Multiple slots**: Enforce several windows (e.g. short, medium, long term) simultaneously
-* **Separate keys**: Track limits by user ID or IP + route + window
-* **Blocked state**: Set `blockedUntil` to prevent further requests until window expires
-* **IP normalization**: Handle IPv4-mapped IPv6 addresses (`::ffff:…`)
 
 
-## Rate Limiting Architecture
-
+###  Rate Limiting Architecture
+```text
 Client Request
     │
     ▼
@@ -243,8 +239,17 @@ RateLimitGuard
                               ▼
                            Update rate limit store
 
+```
+###  Features
 
-## Rate Limit Store
+* **Per-route configuration**: Customize limits at controller or method level
+* **Multiple slots**: Enforce several windows (e.g. short, medium, long term) simultaneously
+* **Separate keys**: Track limits by user ID or IP + route + window
+* **Blocked state**: Set `blockedUntil` to prevent further requests until window expires
+* **IP normalization**: Handle IPv4-mapped IPv6 addresses (`::ffff:…`)
+
+
+### Rate Limit Store
 A simple in-memory store at `src/common/rate-limit/rate-limit.store.ts`:
 
 ```ts
