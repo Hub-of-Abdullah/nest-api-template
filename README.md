@@ -232,16 +232,15 @@ Client Request
     ▼
 RateLimitGuard
     │
-    ├─▶ Authenticated? ──▶ Check user-based limits
-    │                        │
-    └─▶ Unauthenticated ──▶ Check IP-based limits
-                              │
-                              ▼
-                           Update rate limit store
+    ├─▶ Protected (Authenticated) ? ──▶ Check user-based limits
+    │                                           │
+    └─▶ Public (Unauthenticated)    ──▶ Check IP-based limits
+                                                │
+                                                ▼
+                                      Update rate limit store
 
 ```
 ###  Features
-
 * **Per-route configuration**: Customize limits at controller or method level
 * **Multiple slots**: Enforce several windows (e.g. short, medium, long term) simultaneously
 * **Separate keys**: Track limits by user ID or IP + route + window
