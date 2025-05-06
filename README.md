@@ -265,6 +265,20 @@ export const rateLimitStore = {
 Define limits by passing either a single `RateLimitOptions` object or an array for multiple windows.
 
 ```ts
+import { SetMetadata } from '@nestjs/common';
+export interface RateLimitOptions {
+    windowMs?: number;
+    userLimit?: number;
+    deviceLimit?: number;
+  }
+  export const RATE_LIMIT_KEY = 'rate_limit_options';
+  export const RateLimit = (opts: RateLimitOptions) =>
+    SetMetadata(RATE_LIMIT_KEY, opts);
+
+```
+
+### Use Decorate: 
+```ts
 import { RateLimit } from 'src/common/decorators/rate-limit.decorator';
 
 // Single slot
@@ -281,6 +295,8 @@ import { RateLimit } from 'src/common/decorators/rate-limit.decorator';
 
 
 ### 2. Apply `RateLimitGuard`
+
+```ts
 A simple in-memory store at `src/common/guards/rate-limit.guard.ts`:
 @Get('me')
   @UseGuards(JwtWithRefreshAuthGuard, RateLimitGuard)
@@ -289,9 +305,7 @@ A simple in-memory store at `src/common/guards/rate-limit.guard.ts`:
     return this.usersService.getUser({ _id: user._id });
   }
 
-
-
-
+```
 
 ### Support
 
