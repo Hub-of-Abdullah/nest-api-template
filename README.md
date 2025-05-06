@@ -70,18 +70,32 @@ This project implements automatic access token renewal using **Passport.js** and
 
 ### Authentication Flow:
 
+```mermaid
 sequenceDiagram
+    participant Client
+    participant Server
+    participant Database
+
     Client->>Server: Request with expired JWT
-    Server->>Client: 401 Unauthorized
+    activate Server
+    Server-->>Client: 401 Unauthorized
+    deactivate Server
+
     Client->>Server: Retry with refresh token
+    activate Server
     Server->>Database: Validate refresh token
+    activate Database
     Database-->>Server: Token status
+    deactivate Database
+
     alt Valid token
         Server->>Client: New access token
         Server->>Database: Rotate refresh token
     else Invalid token
-        Server->>Client: 403 Forbidden
+        Server-->>Client: 403 Forbidden
     end
+    deactivate Server
+```
 
 ### How It Works:
 - When the access token expires, the system checks the refresh token.
