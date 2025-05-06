@@ -5,6 +5,7 @@ import { User } from './schema/user.schema';
 import { FilterQuery, Model, UpdateQuery } from 'mongoose';
 import { CreateUserRequest } from './dto/create-user.request';
 import { CreateUserWithPhoneRequest } from './dto/register.req.dto';
+import {IPaginationOptions} from 'src/utils/types/pagination-options'
 
 @Injectable()
 export class UsersService {
@@ -75,6 +76,34 @@ async createUserWithPhoneNumber(data: CreateUserWithPhoneRequest) {
     return this.userModel.find({});
   }
 
+  // async findManyWithPagination(paginationOptions: IPaginationOptions) {
+  //   const users = this.userModel.find({
+  //     skip: (paginationOptions.page - 1) * paginationOptions.limit,
+  //     take: paginationOptions.limit,
+  //   });
+  //   console.log(users);
+  //   return users;
+  // }
+
+
+  async findManyWithPagination(paginationOptions: IPaginationOptions) {
+    const { page, limit } = paginationOptions;
+    const skip = (page - 1) * limit;
+  
+    // option A: chaining
+    const users = await this.userModel
+      .find()        // empty filter => all users
+      .skip(skip)
+      .limit(limit)
+      .exec();      // execute the query
+  
+    // option B: passing options object
+    // const users = await this.userModel.find({}, null, { skip, limit });
+    return users;
+  }
+  
+
+  
   async updateUser(query: FilterQuery<User>, data: UpdateQuery<User>) {
     return this.userModel.findOneAndUpdate(query, data);
   }

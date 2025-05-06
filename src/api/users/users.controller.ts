@@ -1,13 +1,16 @@
 import { ApiTags } from '@nestjs/swagger';
-import { Body, Controller, Get, Post, UseGuards } from '@nestjs/common';
+import { Body, Controller, DefaultValuePipe, Get, ParseIntPipe, Post, Query, UseGuards } from '@nestjs/common';
 import { CreateUserRequest } from './dto/create-user.request';
 import { UsersService } from './users.service';
-import { JwtAuthGuard } from 'src/api/auth/guards/jwt-auth.guard';
 import { JwtWithRefreshAuthGuard } from 'src/api/auth/guards/jwt-with-refresh-auth.guard';
 import { CurrentUser } from 'src/decorators/current-user.decorator';
 import { User } from './schema/user.schema';
 import { ApiAuth, ApiPublic } from 'src/decorators/http.decorators';
 import { CreateUserWithPhoneRequest } from './dto/register.req.dto';
+import { infinityPagination } from 'src/utils/infinity-pagination';
+import {RateLimitGuard} from 'src/common/guards/rate-limit.guard';
+import { RateLimit } from 'src/common/decorators/rate-limit.decorator';
+
 
 //@Controller('users')
 
@@ -16,7 +19,7 @@ import { CreateUserWithPhoneRequest } from './dto/register.req.dto';
   path: 'users',
   version: '1',
 })
-
+// @UseGuards(RateLimitGuard)
 export class UsersController {
   constructor(private readonly usersService: UsersService) { }
 
@@ -34,18 +37,44 @@ export class UsersController {
     summary: 'Create a new user with phone number',
   })
   @Post('create')
+  @UseGuards(RateLimitGuard)
+  @RateLimit({ windowMs: 30_000, userLimit: 3, deviceLimit: 10 })
   async createUserWithPhoneNumber(@Body() user: CreateUserWithPhoneRequest): Promise<any> {
     return await this.usersService.createUserWithPhoneNumber(user);
   }
 
+  // @ApiAuth({
+  //   summary: 'Get all usersfjhf',
+  // })
+  // @Get()
+  // //@UseGuards(JwtAuthGuard)
+  // @UseGuards(JwtWithRefreshAuthGuard)
+  // async getUsers() {
+  //   return this.usersService.getUsers();
+  // }
+
+
   @ApiAuth({
-    summary: 'Get all users',
+    summary: 'Get all users paginated',
   })
   @Get()
-  //@UseGuards(JwtAuthGuard)
-  @UseGuards(JwtWithRefreshAuthGuard)
-  async getUsers() {
-    return this.usersService.getUsers();
+  @UseGuards(JwtWithRefreshAuthGuard, RateLimitGuard)
+  @RateLimit({ windowMs: 10_000, userLimit: 2, deviceLimit: 2 })
+  async findAllUser(
+    @Query('page', new DefaultValuePipe(1), ParseIntPipe) page: number,
+    @Query('limit', new DefaultValuePipe(1), ParseIntPipe) limit: number,
+  ) {
+    if (limit > 2) {
+      limit = 2;
+    }
+
+    return infinityPagination(
+      await this.usersService.findManyWithPagination({
+        page,
+        limit,
+      }),
+      { page, limit },
+    );
   }
 
 
@@ -54,7 +83,8 @@ export class UsersController {
     summary: 'Get current user',
   })
   @Get('me')
-  @UseGuards(JwtWithRefreshAuthGuard)
+  @UseGuards(JwtWithRefreshAuthGuard, RateLimitGuard)
+  @RateLimit({ windowMs: 30_000, userLimit: 5, deviceLimit: 10 })
   async getMe(@CurrentUser() user: User) {
     return this.usersService.getUser({ _id: user._id });
   }

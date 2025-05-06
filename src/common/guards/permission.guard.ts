@@ -3,12 +3,11 @@ import { CanActivate, ExecutionContext,Injectable,ForbiddenException,} from '@ne
 import { Reflector } from '@nestjs/core';
 import { PermissionService } from 'src/api/permission/permission.service';
   
-   
   @Injectable()
   export class PermissionGuard implements CanActivate {
     constructor(
       private reflector: Reflector,
-      private permissionService: PermissionService, // service to access the collection
+      private permissionService: PermissionService,
     ) {}
   
     async canActivate(context: ExecutionContext): Promise<boolean> {
@@ -16,13 +15,14 @@ import { PermissionService } from 'src/api/permission/permission.service';
         'permission',
         context.getHandler(),
       );
-
+  
+      // If no permission key is set, allow access
       if (!permissionKey) return true;
   
       const request = context.switchToHttp().getRequest();
       const user = request.user;
-
   
+      // check if user is authenticated  
       if (!user || !user._id) {
         throw new ForbiddenException('User not authenticated');
       }

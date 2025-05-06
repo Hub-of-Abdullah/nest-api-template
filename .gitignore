@@ -3,6 +3,7 @@
 /dist
 /node_modules
 /build
+key.pem
 
 # Logs
 logs
@@ -51,6 +52,8 @@ lerna-debug.log*
 .env.staging.local
 .env.production
 .env.production.local
+
+
 
 # temp directory
 .temp

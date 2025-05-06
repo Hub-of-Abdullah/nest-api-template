@@ -6,12 +6,14 @@ import { Response } from 'express';
 import { AuthService } from './auth.service';
 import { JwtRefreshAuthGuard } from './guards/jwt-refresh-auth.guard';
 import { GoogleAuthGuard } from './guards/google-auth.guard';
-import { ApiOperation, ApiResponse, ApiBody, ApiTags } from '@nestjs/swagger';
+import {  ApiTags } from '@nestjs/swagger';
 import { ApiPublic } from 'src/decorators/http.decorators';
 import { LoginResDto } from './dto/login.res.dto';
 import { LoginReqWithPhoneDto,LoginReqWithEmailDto,LoginReqDto } from './dto/login.req.dto';
 import { CreateUserWithPhoneRequest, CreateUserWithEmailRequest } from './dto/register.req.dto';
-
+import { LoginAttemptGuard  } from 'src/common/guards/login-attempt.guard';
+import {RateLimitGuard} from 'src/common/guards/rate-limit.guard';
+import { RateLimit } from 'src/common/decorators/rate-limit.decorator';
 
 // @Controller('auth')
 
@@ -28,6 +30,8 @@ export class AuthController {
     summary: 'Signup with phone number and password',
   })
   @Post('phone/register')
+  @UseGuards(RateLimitGuard)
+  @RateLimit({ windowMs: 60_000, deviceLimit: 2 })
    async registerWithPhoneNumber(@Body() user: CreateUserWithPhoneRequest): Promise<any> {
      return await this.authService.createUserWithPhoneNumber(user);
    }
@@ -38,7 +42,9 @@ export class AuthController {
     summary: 'Sign in with phone number and password',
   })
   @Post('phone/login')
-  @UseGuards(LocalAuthGuard)
+  // @UseGuards(LoginAttemptGuard, LocalAuthGuard)
+  @UseGuards(RateLimitGuard, LocalAuthGuard)
+  @RateLimit({ windowMs: 60_000, deviceLimit: 2 })
   async loginWithPhoneNumber(
     @Body() userLogin: LoginReqWithPhoneDto, 
     @Res({ passthrough: true }) response: Response, ): Promise<LoginResDto> {
@@ -50,6 +56,7 @@ export class AuthController {
     summary: 'Signup with Email and password',
   })
   @Post('email/register')
+
    async registerWithEmailNumber(@Body() user: CreateUserWithEmailRequest): Promise<any> {
      return await this.authService.createUserWithEmail(user);
    }
