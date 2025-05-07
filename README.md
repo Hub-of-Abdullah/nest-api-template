@@ -58,12 +58,12 @@ $ pnpm run test:e2e
 $ pnpm run test:cov
 ```
 
+# 🔐 Authentication Module
+##  Automatic Token Renewal via JWT Strategy and Passport Guard
 
-## Automatic Token Renewal via JWT Strategy and Passport Guard
+In this project implements automatic access token renewal using **Passport.js** and **JWT strategy**. It validates the refresh token when the access token expires and issues a new token automatically, without needing a dedicated `/refresh` endpoint.
 
-This project implements automatic access token renewal using **Passport.js** and **JWT strategy**. It validates the refresh token when the access token expires and issues a new token automatically, without needing a dedicated `/refresh` endpoint.
-
-### Key Features:
+### ✨ Key Features:
 - **Passport Guard**: Uses a guard to validate the refresh token and automatically renew the access token.
 - **No /refresh Endpoint**: Eliminates the need for a separate refresh endpoint.
 - **Secure Token Rotation**: Refresh tokens are securely rotated after each use to prevent misuse.
@@ -108,10 +108,9 @@ sequenceDiagram
 - **Seamless User Experience**: Transparent token renewal without additional API calls.
 
 
+## 🔐 Role-Based Authorization Module (PermissionGuard + @Permission)
 
-## 🔐 Authorization Module (Role & Permission System)
-
-This module implements a robust role-based access control (RBAC) system using custom decorators and guards in NestJS. It enables fine-grained access control for users based on their assigned roles and permissions.
+This module implements a robust Role-Based Access Control (RBAC) system using custom decorators and guards in NestJS. It follows the RBAC pattern where each user is associated with a list of permission keys. After authentication, the system checks user permissions using a custom @Permission() decorator along with the PermissionGuard. This ensures secure and fine-grained access control throughout the application.
 
 ### ✨ Features
 
@@ -119,13 +118,12 @@ This module implements a robust role-based access control (RBAC) system using cu
 - Custom `@Permission()` decorator
 - Global `PermissionGuard` to restrict access to routes
 - Integration with JWT authentication
-- CRUD endpoints for permissions
 
 ---
 
-### 📁 Controller Endpoints
+### 📁 Controller Endpoints and Permission Key Example
 
-| Method | Route                        | Description                    | Required Permission         |
+| Method | Route                        | Description                    | Required Permission Key     |
 |--------|------------------------------|--------------------------------|---------------------------- |
 | POST   | /auth/permission/create      | Create a new permission        | `permission.add`            |
 | GET    | /auth/permission/get         | Get all permissions            | `permission.view-all`       |
@@ -143,9 +141,6 @@ This module implements a robust role-based access control (RBAC) system using cu
 
 ---
 
-## 🔐 Role-Based Authorization (PermissionGuard + @Permission)
-
-This module enables fine-grained access control in your NestJS API using a custom `@Permission` decorator and `PermissionGuard`. It follows a Role-Based Access Control (RBAC) pattern where each role is associated with a list of permission keys.
 
 ---
 
@@ -202,7 +197,7 @@ User ID (from JWT)
 
 ```
 
-### 🧱 Usage
+### 🧱 Usages Example
 
 To secure a route, apply the following decorators:
 
@@ -218,11 +213,9 @@ async yourHandler() {
 
 ## ⚙️  API Rate Limiting Guards
 
-This module provides two NestJS guards to enforce request rate limits:
+To protect the application from abuse and ensure fair use of resources, this module implements API rate limiting using the `@nestjs/throttler` package `RateLimitGuard` and `@RateLimit()` decorator.
 
-* **RateLimitGuard**: Apply per-route rate limiting for both public (unauthenticated) and protected (authenticated) APIs, supporting multiple time windows.
-* **LoginAttemptGuard**: Specifically throttle login attempts to prevent brute-force attacks.
-
+* **RateLimitGuard**: Apply per-route with custom rate limiting for both public (unauthenticated) and protected (authenticated) APIs, supporting multiple time windows.
 
 
 ###  Rate Limiting Architecture
@@ -245,7 +238,6 @@ RateLimitGuard
 * **Multiple slots**: Enforce several windows (e.g. short, medium, long term) simultaneously
 * **Separate keys**: Track limits by user ID or IP + route + window
 * **Blocked state**: Set `blockedUntil` to prevent further requests until window expires
-* **IP normalization**: Handle IPv4-mapped IPv6 addresses (`::ffff:…`)
 
 
 ### Rate Limit Store
@@ -258,7 +250,6 @@ export const rateLimitStore = {
 };
 ```
 
-
 ###  Decorator: `@RateLimit()`
 
 Define limits by passing either a single `RateLimitOptions` object or an array for multiple windows.
@@ -266,13 +257,15 @@ Define limits by passing either a single `RateLimitOptions` object or an array f
 ```ts
 import { SetMetadata } from '@nestjs/common';
 export interface RateLimitOptions {
-    windowMs?: number;
-    userLimit?: number;
-    deviceLimit?: number;
-  }
-  export const RATE_LIMIT_KEY = 'rate_limit_options';
-  export const RateLimit = (opts: RateLimitOptions) =>
-    SetMetadata(RATE_LIMIT_KEY, opts);
+  windowMs?: number;
+  userLimit?: number;
+  deviceLimit?: number;
+}
+
+export const RATE_LIMIT_KEY = 'rate_limit_options';
+export const RateLimit = (
+  opts: RateLimitOptions | RateLimitOptions[],
+) => SetMetadata(RATE_LIMIT_KEY, opts);
 
 ```
 
