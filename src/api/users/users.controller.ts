@@ -1,92 +1,84 @@
-import { ApiTags } from '@nestjs/swagger';
-import { Body, Controller, DefaultValuePipe, Get, ParseIntPipe, Post, Query, UseGuards } from '@nestjs/common';
-import { CreateUserRequest } from './dto/create-user.request';
-import { UsersService } from './users.service';
-import { JwtWithRefreshAuthGuard } from 'src/api/auth/guards/jwt-with-refresh-auth.guard';
-import { CurrentUser } from 'src/decorators/current-user.decorator';
-import { User } from './schema/user.schema';
-import { ApiAuth, ApiPublic } from 'src/decorators/http.decorators';
-import { CreateUserWithPhoneRequest } from './dto/register.req.dto';
-import { infinityPagination } from 'src/utils/infinity-pagination';
-import {RateLimitGuard} from 'src/common/guards/rate-limit.guard';
-import { RateLimit } from 'src/common/decorators/rate-limit.decorator';
+import { ApiTags } from "@nestjs/swagger";
+import {
+  Body,
+  Controller,
+  DefaultValuePipe,
+  Get,
+  ParseIntPipe,
+  Post,
+  Query,
+  UseGuards,
+} from "@nestjs/common";
+import { CreateUserRequest } from "./dto/create-user.request";
+import { UsersService } from "./users.service";
+import { JwtWithRefreshAuthGuard } from "../auth/guards/jwt-with-refresh-auth.guard";
+import { CurrentUser } from "../../decorators/current-user.decorator";
+import { User } from "./schema/user.schema";
+import { ApiAuth, ApiPublic } from "../../decorators/http.decorators";
+import { CreateUserWithPhoneRequest } from "./dto/register.req.dto";
+import { RateLimitGuard } from "../../common/guards/rate-limit.guard";
+import { RateLimit } from "../../common/decorators/rate-limit.decorator";
 
-
-//@Controller('users')
-
-@ApiTags('Users')
+@ApiTags("Users")
 @Controller({
-  path: 'users',
-  version: '1',
+  path: "users",
+  version: "1",
 })
-// @UseGuards(RateLimitGuard)
 export class UsersController {
-  constructor(private readonly usersService: UsersService) { }
+  constructor(private readonly usersService: UsersService) {}
 
   @ApiPublic({
     type: CreateUserRequest,
-    summary: 'Create a new user',
+    summary: "Create a new user",
   })
   @Post()
-  async createUser(@Body() request: CreateUserRequest) {
-    await this.usersService.create(request);
+  async createUser(@Body() _request: CreateUserRequest) {
+    // await this.usersService.createUser(request);
   }
 
   @ApiPublic({
     type: CreateUserWithPhoneRequest,
-    summary: 'Create a new user with phone number',
+    summary: "Create a new user with phone number",
   })
-  @Post('create')
+  @Post("create")
   @UseGuards(RateLimitGuard)
   @RateLimit({ windowMs: 30_000, userLimit: 3, deviceLimit: 10 })
-  async createUserWithPhoneNumber(@Body() user: CreateUserWithPhoneRequest): Promise<any> {
-    return await this.usersService.createUserWithPhoneNumber(user);
+  async createUserWithPhoneNumber(
+    @Body() _user: CreateUserWithPhoneRequest,
+  ): Promise<any> {
+    // return await this.usersService.createUserWithPhone(user);
   }
 
-  // @ApiAuth({
-  //   summary: 'Get all usersfjhf',
-  // })
-  // @Get()
-  // //@UseGuards(JwtAuthGuard)
-  // @UseGuards(JwtWithRefreshAuthGuard)
-  // async getUsers() {
-  //   return this.usersService.getUsers();
-  // }
-
-
   @ApiAuth({
-    summary: 'Get all users paginated',
+    summary: "Get all users paginated",
   })
   @Get()
   @UseGuards(JwtWithRefreshAuthGuard, RateLimitGuard)
   @RateLimit({ windowMs: 10_000, userLimit: 2, deviceLimit: 2 })
   async findAllUser(
-    @Query('page', new DefaultValuePipe(1), ParseIntPipe) page: number,
-    @Query('limit', new DefaultValuePipe(1), ParseIntPipe) limit: number,
+    @Query("page", new DefaultValuePipe(1), ParseIntPipe) page: number,
+    @Query("limit", new DefaultValuePipe(1), ParseIntPipe) limit: number,
   ) {
     if (limit > 2) {
       limit = 2;
     }
 
-    return infinityPagination(
-      await this.usersService.findManyWithPagination({
-        page,
-        limit,
-      }),
-      { page, limit },
-    );
+    // return infinityPagination(
+    //   await this.usersService.getUsers({
+    //     page,
+    //     limit,
+    //   }),
+    //   { page, limit },
+    // );
   }
 
-
-  //@UseGuards(JwtAuthGuard)
   @ApiAuth({
-    summary: 'Get current user',
+    summary: "Get current user",
   })
-  @Get('me')
+  @Get("me")
   @UseGuards(JwtWithRefreshAuthGuard, RateLimitGuard)
   @RateLimit({ windowMs: 30_000, userLimit: 5, deviceLimit: 10 })
-  async getMe(@CurrentUser() user: User) {
-    return this.usersService.getUser({ _id: user._id });
+  async getMe(@CurrentUser() _user: User) {
+    // return this.usersService.getUser({ _id: user._id });
   }
-
 }

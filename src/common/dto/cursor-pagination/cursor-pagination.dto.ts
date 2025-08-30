@@ -1,6 +1,6 @@
-import { ApiProperty } from '@nestjs/swagger';
-import { Expose } from 'class-transformer';
-import { PageOptionsDto } from './page-options.dto';
+import { ApiProperty } from "@nestjs/swagger";
+import { Expose } from "class-transformer";
+import { PageOptionsDto } from "./page-options.dto";
 
 export class CursorPaginationDto {
   @ApiProperty()

@@ -1,21 +1,21 @@
-import { CursorPaginatedDto } from '../common/dto/cursor-pagination/paginated.dto';
-import { OffsetPaginatedDto } from '../common/dto/offset-pagination/paginated.dto';
-import { type Type, applyDecorators } from '@nestjs/common';
+import { CursorPaginatedDto } from "../common/dto/cursor-pagination/paginated.dto";
+import { OffsetPaginatedDto } from "../common/dto/offset-pagination/paginated.dto";
+import { type Type, applyDecorators } from "@nestjs/common";
 import {
   ApiExtraModels,
   ApiOkResponse,
   type ApiResponseOptions,
   getSchemaPath,
-} from '@nestjs/swagger';
+} from "@nestjs/swagger";
 
 export const ApiPaginatedResponse = <T extends Type<any>>(options: {
   type: T;
   description?: string;
-  paginationType?: 'offset' | 'cursor';
+  paginationType?: "offset" | "cursor";
 }): MethodDecorator => {
   return applyDecorators(
     ApiExtraModels(
-      options.paginationType === 'offset'
+      options.paginationType === "offset"
         ? OffsetPaginatedDto
         : CursorPaginatedDto,
       options.type,
@@ -28,7 +28,7 @@ export const ApiPaginatedResponse = <T extends Type<any>>(options: {
         allOf: [
           {
             $ref: getSchemaPath(
-              options.paginationType === 'offset'
+              options.paginationType === "offset"
                 ? OffsetPaginatedDto
                 : CursorPaginatedDto,
             ),
@@ -36,7 +36,7 @@ export const ApiPaginatedResponse = <T extends Type<any>>(options: {
           {
             properties: {
               data: {
-                type: 'array',
+                type: "array",
                 items: { $ref: getSchemaPath(options.type) },
               },
             },

@@ -1,57 +1,61 @@
 import {
-    CanActivate,
-    ExecutionContext,
-    Injectable,
-    HttpException,
-    HttpStatus,
-  } from '@nestjs/common';
-  import { Request } from 'express';
-  import { rateLimitStore } from '../rate-limit/rate-limit.store';
-  
-  @Injectable()
-  export class LoginAttemptGuard implements CanActivate {
-    private MAX_ATTEMPTS = 5;
-    private WINDOW = 60 * 1000; // 1 minute
-   // private BLOCK_TIME = 10 * 60 * 1000; // 10 minutes
-   private BLOCK_TIME = 1 * 60 * 1000; // 1 minutes
+  Injectable,
+  CanActivate,
+  ExecutionContext,
+  HttpException,
+  HttpStatus,
+} from "@nestjs/common";
+import { Reflector } from "@nestjs/core";
+import { Request } from "express";
+import { rateLimitStore } from "../rate-limit/rate-limit.store";
 
-    canActivate(context: ExecutionContext): boolean {
-      const request = context.switchToHttp().getRequest<Request>();
-      const ip = request.ip;
-      const now = Date.now();
+@Injectable()
+export class LoginAttemptGuard implements CanActivate {
+  private readonly MAX_ATTEMPTS = 5;
+  private readonly BLOCK_DURATION = 15 * 60 * 1000; // 15 minutes
 
-      console.log('ip', ip);
-        
-      const entry = rateLimitStore.unauthenticated.get(ip) || { timestamps: [] };
-  
-      // Check if IP is blocked
-      if (entry.blockedUntil && now < entry.blockedUntil) {
-        throw new HttpException(
-          'Too many login attempts. Try again later.',
-          HttpStatus.TOO_MANY_REQUESTS,
-        );
-      }
-  
-      // Filter out old timestamps
-      const recent = entry.timestamps.filter((t) => now - t < this.WINDOW);
-  
-      // Check if max attempts exceeded
-      if (recent.length >= this.MAX_ATTEMPTS) {
-        rateLimitStore.unauthenticated.set(ip, {
-          timestamps: [],
-          blockedUntil: now + this.BLOCK_TIME,
-        });
-        throw new HttpException(
-          'Too many login attempts. Try again later.',
-          HttpStatus.TOO_MANY_REQUESTS,
-        );
-      }
-  
-      // Save current timestamp
-      recent.push(now);
-      rateLimitStore.unauthenticated.set(ip, { timestamps: recent });
-  
-      return true;
+  constructor(private readonly reflector: Reflector) {}
+
+  canActivate(context: ExecutionContext): boolean {
+    const request = context.switchToHttp().getRequest<Request>();
+    const ip = request.ip;
+    const key = `login-attempt-${ip}`;
+
+    const entry = rateLimitStore.unauthenticated.get(key) || {
+      timestamps: [],
+      blockedUntil: 0,
+    };
+
+    const now = Date.now();
+
+    // Check if IP is blocked
+    if (entry.blockedUntil > now) {
+      const remainingTime = Math.ceil((entry.blockedUntil - now) / 1000 / 60);
+      throw new HttpException(
+        `Too many login attempts. Try again in ${remainingTime} minutes.`,
+        HttpStatus.TOO_MANY_REQUESTS,
+      );
     }
+
+    // Clean old attempts
+    entry.timestamps = entry.timestamps.filter(
+      (timestamp) => now - timestamp < this.BLOCK_DURATION,
+    );
+
+    // Check if limit exceeded
+    if (entry.timestamps.length >= this.MAX_ATTEMPTS) {
+      entry.blockedUntil = now + this.BLOCK_DURATION;
+      rateLimitStore.unauthenticated.set(key, entry);
+      throw new HttpException(
+        "Too many login attempts. Please try again later.",
+        HttpStatus.TOO_MANY_REQUESTS,
+      );
+    }
+
+    // Record this attempt
+    entry.timestamps.push(now);
+    rateLimitStore.unauthenticated.set(key, entry);
+
+    return true;
   }
-  
+}

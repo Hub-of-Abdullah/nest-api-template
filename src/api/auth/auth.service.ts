@@ -1,453 +1,140 @@
-import { Injectable, UnauthorizedException } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
-import { JwtService } from '@nestjs/jwt';
-import { compare, hash } from 'bcryptjs';
-import { User } from '../users/schema/user.schema';
-import { UsersService } from '../users/users.service';
-import { Response } from 'express';
-import { TokenPayload } from './token-payload.interface';
-import { LoginReqWithEmailDto, LoginReqWithPhoneDto, LoginReqDto } from './dto/login.req.dto';
-import { CreateUserWithPhoneRequest, CreateUserWithEmailRequest } from './dto/register.req.dto';
-import { InjectModel } from '@nestjs/mongoose';
-import { Model } from 'mongoose';
+import { Injectable, UnauthorizedException } from "@nestjs/common";
+import { JwtService } from "@nestjs/jwt";
+import { UsersService } from "../users/users.service";
+import { DeviceSessionsService } from "../device-sessions/device-sessions.service";
+import { OtpService } from "../otp/otp.service";
+import { SessionsService } from "../sessions/sessions.service";
+import { console } from "inspector";
+import { TokenPayload } from "./token-payload.interface";
+import { OTPDto } from "./dto/login.req.dto";
 
 @Injectable()
 export class AuthService {
   constructor(
-    @InjectModel(User.name) private readonly userModel: Model<User>,
-    private readonly usersService: UsersService,
-    private readonly configService: ConfigService,
-    private readonly jwtService: JwtService,
+    private readonly users: UsersService,
+    private readonly jwt: JwtService,
+    private readonly deviceSessions: DeviceSessionsService,
+    private readonly otpService: OtpService,
+    private readonly sessions: SessionsService,
+  ) {}
 
-  ) { }
-
-
-  async createUserWithPhoneNumber(data: CreateUserWithPhoneRequest) {
-    await new this.userModel({
-      ...data,
-      password: await hash(data.password, 10),
-    }).save();
+  async validateEmployeeCode(employeeCode: string) {
+    return this.users.findByEmployeeCode(employeeCode);
   }
 
+  async loginWithEmployeeCode(dto: {
+    employeeCode: string;
+    deviceId: string;
+    ipAddress?: string;
+    userAgent?: string;
+    browserFingerprint?: any;
+  }) {
+    const user = await this.validateEmployeeCode(dto.employeeCode);
+    if (!user) throw new UnauthorizedException("Invalid employee code");
 
-  async createUserWithEmail(data: CreateUserWithEmailRequest) {
-    await new this.userModel({
-      ...data,
-      password: await hash(data.password, 10),
-    }).save();
+    // Step 1.2: If any existing device session for employee, remove it (single device rule)
+    await this.deviceSessions.removeAllByEmployeeCode(dto.employeeCode);
+
+    // Create/activate current device session
+    await this.deviceSessions.upsertActive({
+      employeeCode: dto.employeeCode,
+      deviceId: dto.deviceId,
+      ipAddress: dto.ipAddress,
+      userAgent: dto.userAgent,
+      browserFingerprint: dto.browserFingerprint
+        ? JSON.stringify(dto.browserFingerprint)
+        : undefined,
+    });
+
+    const tempToken = this.jwt.sign(
+      { sub: String(user._id), employeeCode: user.employeeCode, step: "otp" },
+      { expiresIn: "5m", secret: process.env.JWT_SECRET },
+    );
+    // Step 2: OTP + Temporary token (5 min) for OTP verification step
+    const otp = await this.otpService.issue(dto.employeeCode, tempToken, 300);
+    // TODO: send OTP via SMS provider here
+    console.log("otp", otp);
+    // Store temporary token for OTP in db
+
+    return { message: "OTP sent to your phone", token: tempToken };
   }
 
+  async verifyOtp(user: TokenPayload, dto: OTPDto, token: string) {
+    const ok = await this.otpService.verify(user.employeeCode, dto.otp, token);
+    if (!ok) throw new UnauthorizedException("Invalid OTP");
+    await this.otpService.consume(user.employeeCode);
 
+    // Step 4: Remove existing sessions (single device auth session)
+    await this.sessions.revokeAll(user.employeeCode);
 
-  async loginWithPhoneNumber(userLogin: LoginReqWithPhoneDto, response: Response, redirect = false) : Promise<any> {
-
-    const includePassword = true;
-    const user = await this.usersService.getUser({ phone: userLogin.phone }, includePassword);
-
-    const expiresAccessToken = new Date();
-    expiresAccessToken.setMilliseconds(
-      expiresAccessToken.getTime() +
-      parseInt(
-        this.configService.getOrThrow<string>(
-          'JWT_ACCESS_TOKEN_EXPIRATION_MS',
-        ),
-      ),
-    );
-
-    // const expiresAccessToken = new Date();
-    // expiresAccessToken.setMilliseconds(
-    //   expiresAccessToken.getTime() +
-    //     parseInt(
-    //       this.configService.getOrThrow<string>('jwt.accessExpirationTime'),
-    //     ),
-    // );
-
-
-    const expiresRefreshToken = new Date();
-    expiresRefreshToken.setMilliseconds(
-      expiresRefreshToken.getTime() +
-      parseInt(
-        this.configService.getOrThrow<string>(
-          'JWT_REFRESH_TOKEN_EXPIRATION_MS',
-        ),
-      ),
-    );
-
-    const tokenPayload: TokenPayload = {
-      userId: user._id.toHexString(),
-    };
-    const accessToken = this.jwtService.sign(tokenPayload, {
-      secret: this.configService.getOrThrow('JWT_ACCESS_TOKEN_SECRET'),
-      expiresIn: `${this.configService.getOrThrow(
-        'JWT_ACCESS_TOKEN_EXPIRATION_MS',
-      )}ms`,
-    });
-    const refreshToken = this.jwtService.sign(tokenPayload, {
-      secret: this.configService.getOrThrow('JWT_REFRESH_TOKEN_SECRET'),
-      expiresIn: `${this.configService.getOrThrow(
-        'JWT_REFRESH_TOKEN_EXPIRATION_MS',
-      )}ms`,
-    });
-
-    // await this.usersService.updateUser(
-    //   { _id: user._id },
-    //   { $set: { refreshToken: await hash(refreshToken, 10) } },
-    // );
-
-
-    const hashedRefreshToken = await hash(refreshToken, 10);
-
-    await this.usersService.updateUser(
-      { _id: user._id },
-      { $set: { refreshToken: hashedRefreshToken} },
-    );
-
-    
-    response.cookie('Authentication', accessToken, {
-      httpOnly: true,
-      secure: this.configService.get('NODE_ENV') === 'production',
-      expires: expiresAccessToken,
-    });
-    response.cookie('Refresh', refreshToken, {
-      httpOnly: true,
-      secure: this.configService.get('NODE_ENV') === 'production',
-      expires: expiresRefreshToken,
-    });
-
-    if (redirect) {
-      response.redirect(this.configService.getOrThrow('AUTH_UI_REDIRECT'));
-    }
-    return {
-      user: {
-        id: user._id.toHexString()
+    // Issue tokens
+    const accessToken = this.jwt.sign(
+      { sub: user.sub, employeeCode: user.employeeCode, role: user.role },
+      {
+        expiresIn: process.env.JWT_EXPIRES_IN || "15m",
+        secret: process.env.JWT_SECRET,
       },
-    };
-
-  }
-
-
-  async loginWithPhoneNumberV2(dto: LoginReqWithPhoneDto, response: Response, redirect = false): Promise<any> {
-    const includePassword = true;
-    const user = await this.usersService.getUser({ phoneNumber: dto.phone }, includePassword);
-    if (!user) {
-      throw new UnauthorizedException('Invalid phone number.');
-    }
-    const isPasswordValid = user && (await this.verifyPassword(dto.password, user.password));
-
-    if (!isPasswordValid) {
-      throw new UnauthorizedException();
-    }
-
-    const expiresAccessToken = new Date();
-    expiresAccessToken.setMilliseconds(
-      expiresAccessToken.getTime() +
-      parseInt(
-        this.configService.getOrThrow<string>(
-          'JWT_ACCESS_TOKEN_EXPIRATION_MS',
-        ),
-      ),
     );
 
-    const expiresRefreshToken = new Date();
-    expiresRefreshToken.setMilliseconds(
-      expiresRefreshToken.getTime() +
-      parseInt(
-        this.configService.getOrThrow<string>(
-          'JWT_REFRESH_TOKEN_EXPIRATION_MS',
-        ),
-      ),
+    const refreshToken = this.jwt.sign(
+      { sub: user.sub, employeeCode: user.employeeCode },
+      {
+        expiresIn: process.env.JWT_REFRESH_EXPIRES_IN || "7d",
+        secret: process.env.JWT_REFRESH_SECRET,
+      },
     );
 
-    const tokenPayload: TokenPayload = {
-      userId: user._id.toHexString(),
-    };
-    const accessToken = this.jwtService.sign(tokenPayload, {
-      secret: this.configService.getOrThrow('JWT_ACCESS_TOKEN_SECRET'),
-      expiresIn: `${this.configService.getOrThrow(
-        'JWT_ACCESS_TOKEN_EXPIRATION_MS',
-      )}ms`,
-    });
-    const refreshToken = this.jwtService.sign(tokenPayload, {
-      secret: this.configService.getOrThrow('JWT_REFRESH_TOKEN_SECRET'),
-      expiresIn: `${this.configService.getOrThrow(
-        'JWT_REFRESH_TOKEN_EXPIRATION_MS',
-      )}ms`,
-    });
-
-    await this.usersService.updateUser(
-      { _id: user._id },
-      { $set: { refreshToken: await hash(refreshToken, 10) } },
+    await this.sessions.createOrReplaceForEmployee(
+      user.employeeCode,
+      refreshToken,
+      7,
     );
 
-
-    response.cookie('Authentication', accessToken, {
-      httpOnly: true,
-      secure: this.configService.get('NODE_ENV') === 'production',
-      expires: expiresAccessToken,
-    });
-    response.cookie('Refresh', refreshToken, {
-      httpOnly: true,
-      secure: this.configService.get('NODE_ENV') === 'production',
-      expires: expiresRefreshToken,
-    });
-
-    if (redirect) {
-      response.redirect(this.configService.getOrThrow('AUTH_UI_REDIRECT'));
-    }
-
-    // return {
-    //   accessToken,
-    //   refreshToken,
-    //   expiresAccessToken,
-    //   expiresRefreshToken,
-    // };
-
+    return { accessToken, refreshToken };
   }
 
-  async loginWithEmail(dto: LoginReqWithEmailDto, response: Response, redirect = false): Promise<any> {
-    const includePassword = true;
-    const user = await this.usersService.getUser({ email: dto.email },includePassword);
-    if (!user) {
-      throw new UnauthorizedException('Invalid Email.');
-    }
-    const isPasswordValid = user && (await this.verifyPassword(dto.password, user.password));
-  
-    if (!isPasswordValid) {
-      throw new UnauthorizedException();
-    }
+  async rotateTokens(employeeCode: string, oldRefreshToken: string) {
+    const session = await this.sessions.findValid(
+      employeeCode,
+      oldRefreshToken,
+    );
+    if (!session) throw new UnauthorizedException("Invalid refresh session");
 
-    const expiresAccessToken = new Date();
-    expiresAccessToken.setMilliseconds(
-      expiresAccessToken.getTime() +
-      parseInt(
-        this.configService.getOrThrow<string>(
-          'JWT_ACCESS_TOKEN_EXPIRATION_MS',
-        ),
-      ),
+    const user = await this.validateEmployeeCode(employeeCode);
+    if (!user) throw new UnauthorizedException("User not found");
+
+    const accessToken = this.jwt.sign(
+      {
+        sub: String(user._id),
+        employeeCode: user.employeeCode,
+        role: user.role,
+      },
+      {
+        expiresIn: process.env.JWT_EXPIRES_IN || "15m",
+        secret: process.env.JWT_SECRET,
+      },
     );
 
-    const expiresRefreshToken = new Date();
-    expiresRefreshToken.setMilliseconds(
-      expiresRefreshToken.getTime() +
-      parseInt(
-        this.configService.getOrThrow<string>(
-          'JWT_REFRESH_TOKEN_EXPIRATION_MS',
-        ),
-      ),
+    const newRefresh = this.jwt.sign(
+      { sub: String(user._id), employeeCode: user.employeeCode },
+      {
+        expiresIn: process.env.JWT_REFRESH_EXPIRES_IN || "7d",
+        secret: process.env.JWT_REFRESH_SECRET,
+      },
     );
 
-    const tokenPayload: TokenPayload = {
-      userId: user._id.toHexString(),
-    };
-    const accessToken = this.jwtService.sign(tokenPayload, {
-      secret: this.configService.getOrThrow('JWT_ACCESS_TOKEN_SECRET'),
-      expiresIn: `${this.configService.getOrThrow(
-        'JWT_ACCESS_TOKEN_EXPIRATION_MS',
-      )}ms`,
-    });
-    const refreshToken = this.jwtService.sign(tokenPayload, {
-      secret: this.configService.getOrThrow('JWT_REFRESH_TOKEN_SECRET'),
-      expiresIn: `${this.configService.getOrThrow(
-        'JWT_REFRESH_TOKEN_EXPIRATION_MS',
-      )}ms`,
-    });
-
-    await this.usersService.updateUser(
-      { _id: user._id },
-      { $set: { refreshToken: await hash(refreshToken, 10) } },
+    await this.sessions.createOrReplaceForEmployee(
+      employeeCode,
+      newRefresh,
+      7,
+      session.deviceId,
     );
-
-
-    response.cookie('Authentication', accessToken, {
-      httpOnly: true,
-      secure: this.configService.get('NODE_ENV') === 'production',
-      expires: expiresAccessToken,
-    });
-    response.cookie('Refresh', refreshToken, {
-      httpOnly: true,
-      secure: this.configService.get('NODE_ENV') === 'production',
-      expires: expiresRefreshToken,
-    });
-
-    if (redirect) {
-      response.redirect(this.configService.getOrThrow('AUTH_UI_REDIRECT'));
-    }
-
+    return { accessToken, refreshToken: newRefresh };
   }
 
-
-  
-
-
-  async verifyPassword(password: string, hashedPassword: string): Promise<boolean> {
-    try {
-      return await compare(password, hashedPassword);
-    } catch (error) {
-      return false;
-    }
-  };
-
-  async verifyUser(email: string, password: string) {
-    const includePassword = true;
-    try {
-      const user = await this.usersService.getUser({ email }, includePassword);
-      
-      const authenticated = await compare(password, user.password);
-      if (!authenticated) {
-        throw new UnauthorizedException();
-      }
-      return user;
-    } catch (err) {
-      throw new UnauthorizedException('Credentials are not valid.');
-    }
-  }
-
-  async verifyUserByPhone(phone: string, password: string) {
-    const includePassword = true;
-    try {
-      const user = await this.usersService.getUser({ phone }, includePassword);
-
-      const authenticated = await compare(password, user.password);
-      if (!authenticated) {
-        throw new UnauthorizedException();
-      }
-      return user;
-    } catch (err) {
-      throw new UnauthorizedException('Credentials are not valid.');
-    }
-  }
-
-
-
-  async verifyUserByEmail(email: string, password: string) {
-    const includePassword = true;
-    try {
-      const user = await this.usersService.getUser({ email }, includePassword);
-      
-      const authenticated = await compare(password, user.password);
-      if (!authenticated) {
-        throw new UnauthorizedException();
-      }
-      return user;
-    } catch (err) {
-      throw new UnauthorizedException('Credentials are not valid.');
-    }
-  }
-
-
-  async veryifyUserRefreshToken(refreshToken: string, userId: string) {
-    try {
-      const user = await this.usersService.getUser({ _id: userId });
-      const authenticated = await compare(refreshToken, user.refreshToken);
-      if (!authenticated) {
-        throw new UnauthorizedException();
-      }
-      return user;
-    } catch (err) {
-      throw new UnauthorizedException('Refresh token is not valid.');
-    }
-  }
-
-  async verifyUserRefreshToken(rawRefreshToken: string, userId: string) {
-    try {
-      //const user = await (await this.usersService.getUserRefreshToken({ _id: userId })).select('+refreshToken');
-      const user = await this.usersService.getUserRefreshToken1({ _id: userId });
-  
-      const authenticated = await compare(rawRefreshToken, user.refreshToken);
-    
-      if (!authenticated) {
-        throw new UnauthorizedException();
-      }
-      return user;
-    } catch (err) {
-      throw new UnauthorizedException('Refresh token is not valid Test');
-    }
-  }
-
-  async generateAccessToken(userId: string) {
-
-    const accessToken = this.jwtService.sign({ userId }, {
-      secret: this.configService.getOrThrow('JWT_ACCESS_TOKEN_SECRET'),
-      expiresIn: `${this.configService.getOrThrow(
-        'JWT_ACCESS_TOKEN_EXPIRATION_MS',
-      )}ms`,
-    });
-    return accessToken;
-  }
-
-  // async generateRefreshToken (userId: string) {
-  //   const refreshToken = this.jwtService.sign({ userId }, {
-  //     secret: this.configService.getOrThrow('JWT_REFRESH_TOKEN_SECRET'),
-  //     expiresIn: `${this.configService.getOrThrow(
-  //       'JWT_REFRESH_TOKEN_EXPIRATION_MS',
-  //     )}ms`,
-  //   });
-  //   const hashedRefreshToken = await hash(refreshToken, 10);
-  //   return hashedRefreshToken;
-  // }
-
-
-  // async updateRefreshToken(userId: string, refreshToken: string) {
-  //   await this.usersService.updateUser(
-  //     { _id: userId },
-  //     { $set: { refreshToken: await hash(refreshToken, 10) } },
-  //   );
-  // }
-
-
-// AuthService
-async generateRefreshToken(userId: string) {
-  return this.jwtService.sign({ userId }, {
-    secret: this.configService.getOrThrow('JWT_REFRESH_TOKEN_SECRET'),
-    expiresIn: `${this.configService.getOrThrow('JWT_REFRESH_TOKEN_EXPIRATION_MS')}ms`,
-  });
-}
-
-async updateRefreshToken(userId: string, rawToken: string) {
-  const hashed = await hash(rawToken, 10);
-  await this.usersService.updateUser(
-    { _id: userId },
-    { $set: { refreshToken: hashed } },
-  );
-}
-
-
-  async setToken(accessToken: string, refreshToken: string, response: Response, ) {
-    const expiresAccessToken = new Date();
-    expiresAccessToken.setMilliseconds(
-      expiresAccessToken.getTime() +
-      parseInt(
-        this.configService.getOrThrow<string>(
-          'JWT_ACCESS_TOKEN_EXPIRATION_MS',
-        ),
-      ),
-    );
-
-    const expiresRefreshToken = new Date();
-    expiresRefreshToken.setMilliseconds(
-      expiresRefreshToken.getTime() +
-      parseInt(
-        this.configService.getOrThrow<string>(
-          'JWT_REFRESH_TOKEN_EXPIRATION_MS',
-        ),
-      ),
-    );
-
-   // const hashedRefreshToken = await hash(refreshToken, 10);
-    response.cookie('Authentication', accessToken, {
-      httpOnly: true,
-      secure: this.configService.get('NODE_ENV') === 'production',
-      expires: expiresAccessToken,
-    });
-    response.cookie('Refresh', refreshToken, {
-      httpOnly: true,
-      secure: this.configService.get('NODE_ENV') === 'production',
-      expires: expiresRefreshToken,
-    });
+  async logout(employeeCode: string) {
+    await this.sessions.revokeAll(employeeCode);
+    await this.deviceSessions.removeAllByEmployeeCode(employeeCode);
+    return { message: "Logged out" };
   }
 }
-
-
-
-
-

@@ -1,4 +1,8 @@
-import { IsEmail, IsString, IsStrongPassword, IsPhoneNumber } from 'class-validator';
+import {
+  IsEmail,
+  IsString,
+  IsPhoneNumber,
+} from "class-validator";
 
 export class CreateUserRequest {
   @IsEmail()
@@ -8,7 +12,7 @@ export class CreateUserRequest {
   @IsString()
   password: string;
 }
- 
+
 export class CreateUserWithPhoneRequest {
   @IsPhoneNumber()
   phoneNumber: string;
@@ -17,4 +21,3 @@ export class CreateUserWithPhoneRequest {
   @IsString()
   password: string;
 }
- 

@@ -1,5 +1,5 @@
-import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
-import { SchemaTypes, Types, Document } from 'mongoose';
+import { Prop, Schema, SchemaFactory } from "@nestjs/mongoose";
+import { SchemaTypes, Types, Document } from "mongoose";
 
 export type RolePermissionDocument = RolePermission & Document;
 
@@ -10,7 +10,7 @@ export class RolePermission {
 
   @Prop({ type: SchemaTypes.ObjectId, required: true })
   userId: Types.ObjectId;
-  
+
   // @Prop({ type: SchemaTypes.ObjectId, required: true})
   // permissonKeyId: Types.ObjectId; // Note: Typo in field name ("permisson")
 
@@ -26,7 +26,7 @@ export class RolePermission {
   @Prop({ type: Date })
   publishedAt?: Date;
 
-  @Prop({ type: SchemaTypes.ObjectId,})
+  @Prop({ type: SchemaTypes.ObjectId })
   publishedBy?: Types.ObjectId;
 
   @Prop({ type: Date })
@@ -38,24 +38,24 @@ export class RolePermission {
   @Prop({ type: Date })
   updatedAt?: Date;
 
-  @Prop({ type: SchemaTypes.ObjectId, })
+  @Prop({ type: SchemaTypes.ObjectId })
   updatedBy?: Types.ObjectId;
 
   @Prop({ type: Date })
   deletedAt?: Date;
 
-  @Prop({ type: SchemaTypes.ObjectId, })
+  @Prop({ type: SchemaTypes.ObjectId })
   deletedBy?: Types.ObjectId;
 
   @Prop({ type: Date })
   createdAt?: Date;
 
-  @Prop({ type: SchemaTypes.ObjectId, })
+  @Prop({ type: SchemaTypes.ObjectId })
   createdBy?: Types.ObjectId;
-
 }
 
-export const RolePermissionSchema = SchemaFactory.createForClass(RolePermission);
+export const RolePermissionSchema =
+  SchemaFactory.createForClass(RolePermission);
 
 // Unique composite index to prevent duplicates
 //RolePermissionSchema.index({ userId: 1, permissonKeyId: 1 }, { unique: true });

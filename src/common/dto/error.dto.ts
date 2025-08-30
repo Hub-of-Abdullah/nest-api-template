@@ -1,5 +1,5 @@
-import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { ErrorDetailDto } from './error-detail.dto';
+import { ApiProperty, ApiPropertyOptional } from "@nestjs/swagger";
+import { ErrorDetailDto } from "./error-detail.dto";
 
 export class ErrorDto {
   @ApiProperty()

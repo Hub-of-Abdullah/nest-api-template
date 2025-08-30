@@ -1,4 +1,4 @@
-import { registerDecorator, type ValidationOptions } from 'class-validator';
+import { registerDecorator, type ValidationOptions } from "class-validator";
 
 export function IsPassword(
   validationOptions?: ValidationOptions,
@@ -6,7 +6,7 @@ export function IsPassword(
   return (object, propertyName) => {
     registerDecorator({
       propertyName: propertyName as string,
-      name: 'isPassword',
+      name: "isPassword",
       target: object.constructor,
       constraints: [],
       options: validationOptions,

@@ -1,4 +1,4 @@
-import { Transform } from 'class-transformer';
+import { Transform } from "class-transformer";
 
 /**
  * @description trim spaces from start and end, replace multiple spaces with one.
@@ -17,10 +17,10 @@ export function Trim(): PropertyDecorator {
     const value = params.value as string[] | string;
 
     if (Array.isArray(value)) {
-      return value.map((v) => v.trim().replaceAll(/\s\s+/g, ' '));
+      return value.map((v) => v.trim().replaceAll(/\s\s+/g, " "));
     }
 
-    return value.trim().replaceAll(/\s\s+/g, ' ');
+    return value.trim().replaceAll(/\s\s+/g, " ");
   });
 }
 
@@ -28,11 +28,11 @@ export function ToBoolean(): PropertyDecorator {
   return Transform(
     (params) => {
       switch (params.value) {
-        case 'true': {
+        case "true": {
           return true;
         }
 
-        case 'false': {
+        case "false": {
           return false;
         }
 

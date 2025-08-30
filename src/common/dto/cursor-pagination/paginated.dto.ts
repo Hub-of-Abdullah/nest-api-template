@@ -1,6 +1,6 @@
-import { ApiProperty } from '@nestjs/swagger';
-import { Expose } from 'class-transformer';
-import { CursorPaginationDto } from './cursor-pagination.dto';
+import { ApiProperty } from "@nestjs/swagger";
+import { Expose } from "class-transformer";
+import { CursorPaginationDto } from "./cursor-pagination.dto";
 
 export class CursorPaginatedDto<TData> {
   @ApiProperty({ type: [Object] })

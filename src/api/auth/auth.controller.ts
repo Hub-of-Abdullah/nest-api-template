@@ -1,110 +1,85 @@
-import { Controller, Get, Post, Res, UseGuards, HttpStatus, Body } from '@nestjs/common';
-import { LocalAuthGuard } from './guards/local-auth.guard';
-import { CurrentUser } from '../../decorators/current-user.decorator';
-import { User } from '../users/schema/user.schema';
-import { Response } from 'express';
-import { AuthService } from './auth.service';
-import { JwtRefreshAuthGuard } from './guards/jwt-refresh-auth.guard';
-import { GoogleAuthGuard } from './guards/google-auth.guard';
-import {  ApiTags } from '@nestjs/swagger';
-import { ApiPublic } from 'src/decorators/http.decorators';
-import { LoginResDto } from './dto/login.res.dto';
-import { LoginReqWithPhoneDto,LoginReqWithEmailDto,LoginReqDto } from './dto/login.req.dto';
-import { CreateUserWithPhoneRequest, CreateUserWithEmailRequest } from './dto/register.req.dto';
-import { LoginAttemptGuard  } from 'src/common/guards/login-attempt.guard';
-import {RateLimitGuard} from 'src/common/guards/rate-limit.guard';
-import { RateLimit } from 'src/common/decorators/rate-limit.decorator';
+import { Controller, Post, Res, Body, UseGuards, Req } from "@nestjs/common";
+import { Response, Request } from "express";
+import { AuthService } from "./auth.service";
+import { ApiTags } from "@nestjs/swagger";
+import { LoginReqDto, OTPDto } from "./dto/login.req.dto";
+import { setCookie, clearCookie } from "../../utils/cookies";
+import { JwtAuthGuard } from "./guards/jwt-auth.guard";
+import { RefreshAuthGuard } from "./guards/refresh-auth.guard";
+import { RateLimit } from "../../common/decorators/rate-limit.decorator";
+import { RateLimitGuard } from "../../common/guards/rate-limit.guard";
+import { OtpTokenGuard } from "./guards/otp.token.guard";
+import { CurrentUser } from "../../decorators/current-user.decorator";
+import { TokenPayload } from "./token-payload.interface";
+import { LocalAuthGuard } from "./guards/local-auth.guard";
 
-// @Controller('auth')
-
-@ApiTags('Authentication')
-@Controller({
-  path: 'auth',
-  version: '1',
-})
+@ApiTags("Authentication")
+@Controller({ path: "auth", version: "1" })
 export class AuthController {
-  constructor(private readonly authService: AuthService) { }
+  constructor(private readonly auth: AuthService) {}
 
-  @ApiPublic({
-    type: CreateUserWithPhoneRequest,
-    summary: 'Signup with phone number and password',
-  })
-  @Post('phone/register')
-  @UseGuards(RateLimitGuard)
-  @RateLimit({ windowMs: 60_000, deviceLimit: 2 })
-   async registerWithPhoneNumber(@Body() user: CreateUserWithPhoneRequest): Promise<any> {
-     return await this.authService.createUserWithPhoneNumber(user);
-   }
-
-
-   @ApiPublic({
-    type: LoginReqWithPhoneDto,
-    summary: 'Sign in with phone number and password',
-  })
-  @Post('phone/login')
-  // @UseGuards(LoginAttemptGuard, LocalAuthGuard)
+  @Post("employee/login")
   @UseGuards(RateLimitGuard, LocalAuthGuard)
+  @RateLimit({ windowMs: 60_000, deviceLimit: 50 })
+  async loginWithEmployeeCode(@Body() dto: LoginReqDto, @Res() res: Response) {
+    const result = await this.auth.loginWithEmployeeCode(dto);
+
+    console.log('result', result);
+    // Store temporary token for OTP step (optional cookie; you can also return in body only)
+    setCookie(res, "otp_token", result.token, 5 * 60 * 1000);
+    return res.json({ message: result.message });
+  }
+
+  @Post("verify/otp")
+  @UseGuards(RateLimitGuard, OtpTokenGuard)
   @RateLimit({ windowMs: 60_000, deviceLimit: 2 })
-  async loginWithPhoneNumber(
-    @Body() userLogin: LoginReqWithPhoneDto, 
-    @Res({ passthrough: true }) response: Response, ): Promise<LoginResDto> {
-    return await this.authService. loginWithPhoneNumber(userLogin, response);
-  }
-
-   @ApiPublic({
-    type: CreateUserWithEmailRequest,
-    summary: 'Signup with Email and password',
-  })
-  @Post('email/register')
-
-   async registerWithEmailNumber(@Body() user: CreateUserWithEmailRequest): Promise<any> {
-     return await this.authService.createUserWithEmail(user);
-   }
-
- 
-   @ApiPublic({
-    type: LoginReqWithEmailDto,
-    summary: 'Sign in with Email and password',
-  })
-  @Post('email/login')
-  @UseGuards(LocalAuthGuard)
-  async loginWithEmail(
-    @Body() userLogin: LoginReqWithEmailDto,
-    @Res({ passthrough: true }) response: Response, ): Promise<LoginResDto> {
-    return await this.authService.loginWithEmail(userLogin, response);
-  }
-
-
-  @Post('refresh')
-  @UseGuards(JwtRefreshAuthGuard)
-  async refreshToken(
-    @CurrentUser() user: User,
-    @Res({ passthrough: true }) response: Response,
+  async verifyOtp(
+    @CurrentUser() user: TokenPayload,
+    @Body() dto: OTPDto,
+    @Res() res: Response,
+    @Req() req: Request,
   ) {
-    await this.authService.loginWithPhoneNumber(user, response);
+    const token = req.cookies?.otp_token;
+    const { accessToken, refreshToken } = await this.auth.verifyOtp(
+      user,
+      dto,
+      token,
+    );
+
+    // Set HTTP-only cookies and remove temp cookie
+    clearCookie(res, "otp_token");
+    setCookie(res, "access_token", accessToken, 15 * 60 * 1000);
+    setCookie(res, "refresh_token", refreshToken, 7 * 24 * 60 * 60 * 1000);
+
+    return res.json({ message: "Authenticated" });
   }
 
-  @Get('google')
-  @UseGuards(GoogleAuthGuard)
-  loginGoogle() { }
-
-  @Get('google/callback')
-  @UseGuards(GoogleAuthGuard)
-  async googleCallback(
-    @CurrentUser() user: User,
-    @Res({ passthrough: true }) response: Response,
+  @Post("refresh")
+  @UseGuards(RefreshAuthGuard)
+  async refresh(
+    @Body("employeeCode") employeeCode: string,
+    @Res() res: Response,
   ) {
-    await this.authService.loginWithPhoneNumber(user, response, true);
+    // employeeCode in body helps bind server-side session to a principal
+    const oldRefresh = (res.req as any)?.cookies?.refresh_token;
+    const { accessToken, refreshToken } = await this.auth.rotateTokens(
+      employeeCode,
+      oldRefresh,
+    );
+    setCookie(res, "access_token", accessToken, 15 * 60 * 1000);
+    setCookie(res, "refresh_token", refreshToken, 7 * 24 * 60 * 60 * 1000);
+    return res.json({ message: "Tokens refreshed" });
+  }
+
+  @Post("logout")
+  @UseGuards(JwtAuthGuard)
+  async logout(
+    @Body("employeeCode") employeeCode: string,
+    @Res() res: Response,
+  ) {
+    await this.auth.logout(employeeCode);
+    clearCookie(res, "access_token");
+    clearCookie(res, "refresh_token");
+    return res.json({ message: "Logged out" });
   }
 }
-
-
-
- // @Post('login')
-  // @UseGuards(LocalAuthGuard)
-  // async login(
-  //   @CurrentUser() user: User,
-  //   @Res({ passthrough: true }) response: Response,
-  // ) {
-  //   await this.authService.login(user, response);
-  // }

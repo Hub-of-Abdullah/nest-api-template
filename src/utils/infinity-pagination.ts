@@ -1,6 +1,6 @@
-import { IPaginationOptions } from './types/pagination-options';
+import { IPaginationOptions } from "./types/pagination-options";
 
-export const infinityPagination = <T>(
+export const infinityPagination = async <T>(
   data: T[],
   options: IPaginationOptions,
 ) => {

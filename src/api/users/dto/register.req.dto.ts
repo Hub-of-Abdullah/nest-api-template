@@ -1,4 +1,8 @@
-import { EmailField, PasswordField, PhoneField } from '../../../decorators/field.decorators';
+import {
+  EmailField,
+  PasswordField,
+  PhoneField,
+} from "../../../decorators/field.decorators";
 
 export class RegisterReqDto {
   @EmailField()

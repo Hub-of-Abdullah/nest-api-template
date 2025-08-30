@@ -1,10 +1,10 @@
-import { ErrorDto } from '../common/dto/error.dto';
+import { ErrorDto } from "../common/dto/error.dto";
 import {
   HttpCode,
   HttpStatus,
   type Type,
   applyDecorators,
-} from '@nestjs/common';
+} from "@nestjs/common";
 import {
   ApiBasicAuth,
   ApiBearerAuth,
@@ -13,14 +13,14 @@ import {
   ApiOperation,
   ApiResponse,
   ApiSecurity,
-} from '@nestjs/swagger';
-import { STATUS_CODES } from 'http';
-import { Public } from './public.decorator';
-import { ApiPaginatedResponse } from './swagger.decorators';
+} from "@nestjs/swagger";
+import { STATUS_CODES } from "http";
+import { Public } from "./public.decorator";
+import { ApiPaginatedResponse } from "./swagger.decorators";
 
 type ApiResponseType = number;
-type ApiAuthType = 'basic' | 'api-key' | 'jwt';
-type PaginationType = 'offset' | 'cursor';
+type ApiAuthType = "basic" | "api-key" | "jwt";
+type PaginationType = "offset" | "cursor";
 
 interface IApiOptions<T extends Type<any>> {
   type?: T;
@@ -50,8 +50,8 @@ export const ApiPublic = (options: IApiPublicOptions = {}): MethodDecorator => {
   const isPaginated = options.isPaginated || false;
   const ok = {
     type: options.type,
-    description: options?.description ?? 'OK',
-    paginationType: options.paginationType || 'offset',
+    description: options?.description ?? "OK",
+    paginationType: options.paginationType || "offset",
   };
 
   const errorResponses = (options.errorResponses || defaultErrorResponses)?.map(
@@ -85,10 +85,10 @@ export const ApiAuth = (options: IApiAuthOptions = {}): MethodDecorator => {
   const isPaginated = options.isPaginated || false;
   const ok = {
     type: options.type,
-    description: options?.description ?? 'OK',
-    paginationType: options.paginationType || 'offset',
+    description: options?.description ?? "OK",
+    paginationType: options.paginationType || "offset",
   };
-  const auths = options.auths || ['jwt'];
+  const auths = options.auths || ["jwt"];
 
   const errorResponses = (options.errorResponses || defaultErrorResponses)?.map(
     (statusCode) =>
@@ -101,11 +101,11 @@ export const ApiAuth = (options: IApiAuthOptions = {}): MethodDecorator => {
 
   const authDecorators = auths.map((auth) => {
     switch (auth) {
-      case 'basic':
+      case "basic":
         return ApiBasicAuth();
-      case 'api-key':
-        return ApiSecurity('Api-Key');
-      case 'jwt':
+      case "api-key":
+        return ApiSecurity("Api-Key");
+      case "jwt":
         return ApiBearerAuth();
     }
   });
