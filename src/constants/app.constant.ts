@@ -1,0 +1,29 @@
+export const IS_PUBLIC = "isPublic";
+export const IS_AUTH_OPTIONAL = "isAuthOptional";
+
+export enum Environment {
+  LOCAL = "local",
+  DEVELOPMENT = "development",
+  STAGING = "staging",
+  PRODUCTION = "production",
+  TEST = "test",
+}
+
+export enum DefaultUrl {
+  APP_CORS_ORIGIN = "http://localhost:3000",
+}
+
+export enum Order {
+  ASC = "ASC",
+  DESC = "DESC",
+}
+
+export const DEFAULT_PAGE_LIMIT = 10;
+export const DEFAULT_CURRENT_PAGE = 1;
+export const SYSTEM_USER_ID = "system";
+
+export const TokenNames = {
+  ACCESS_TOKEN: "accessToken",
+  REFRESH_TOKEN: "refreshToken",
+  OTP_TOKEN: "otp_token",
+} as const;
